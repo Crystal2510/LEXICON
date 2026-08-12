@@ -1,0 +1,38 @@
+ollama:
+  base_url: "http://localhost:11434"
+  text_model: "llama3.1:8b"  # TEMP: switch back to qwen2.5:7b after it finishes downloading
+  vision_model: "qwen2-vl:7b"
+  timeout_seconds: 180
+  ollama_exe: "C:/Users/Gauri/AppData/Local/Programs/Ollama/ollama.exe"  # path to CLI
+
+orchestrator:
+  max_retries_per_field: 2
+  max_fields_per_product: 20
+  relevant_chunk_chars: 1500       # max chars sent to LLM per extraction attempt (smaller = faster)
+  max_chunks_per_field: 2          # max text windows tried per field
+
+confidence:
+  direct_text:        0.85
+  direct_excel:       0.80
+  direct_image:       0.70
+  rag_inferred:       0.50
+  human_verified:     1.00
+  out_of_range_cap:   0.30         # any out-of-range value is capped here
+  cross_source_bonus: 0.10         # value agrees across PDF + Excel → +0.10
+
+retrieval:
+  n_results: 3
+  embedding_model: "all-MiniLM-L6-v2"
+  min_results_for_inference: 2     # need at least this many similar products to infer a value
+
+paths:
+  schemas_dir: "data/schemas"
+  output_dir:  "data/output"
+  chroma_dir:  "data/chroma_memory"
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:5173"

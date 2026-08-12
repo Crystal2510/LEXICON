@@ -1,0 +1,52 @@
+{
+  "category": "ball_bearing",
+  "fields": {
+    "bore_diameter": {
+      "type": "number",
+      "unit": "mm",
+      "min": 0.5,
+      "max": 400.0,
+      "required": true
+    },
+    "outer_diameter": {
+      "type": "number",
+      "unit": "mm",
+      "min": 2.0,
+      "max": 824.0,
+      "required": true
+    },
+    "width": {
+      "type": "number",
+      "unit": "mm",
+      "min": 1.0,
+      "max": 140.0,
+      "required": true
+    },
+    "load_rating_dynamic": {
+      "type": "number",
+      "unit": "kN",
+      "min": 0.1,
+      "max": 4980.0,
+      "required": true
+    },
+    "load_rating_static": {
+      "type": "number",
+      "unit": "kN",
+      "min": 0.01,
+      "max": 4980.0,
+      "required": false
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "brass",
+        "carbon_chromium",
+        "ceramic_hybrid",
+        "chrome_steel",
+        "polyamide",
+        "stainless_steel"
+      ],
+      "required": true
+    }
+  }
+}

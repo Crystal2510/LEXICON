@@ -1,0 +1,322 @@
+[
+  {
+    "step": 1,
+    "field": "__pipeline__",
+    "agent": "orchestrator",
+    "action": "start",
+    "input_summary": "file=Timken-Deep-Groove-Ball-Bearings.pdf, category=ball_bearing, origin=real_manufacturer",
+    "output_summary": "schema has 6 fields, model=qwen2.5:7b",
+    "result": "success",
+    "timestamp": "2026-08-11T18:09:25.403280+00:00"
+  },
+  {
+    "step": 2,
+    "field": "bore_diameter",
+    "agent": "document_agent",
+    "action": "extract_attempt",
+    "input_summary": "PDF chunk from page 4 (2600 chars)",
+    "output_summary": "value=None, span=''",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:09:29.669241+00:00"
+  },
+  {
+    "step": 3,
+    "field": "bore_diameter",
+    "agent": "document_agent",
+    "action": "extract_attempt",
+    "input_summary": "PDF chunk from page 8 (1749 chars)",
+    "output_summary": "value=None, span=''",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:09:33.746812+00:00"
+  },
+  {
+    "step": 4,
+    "field": "bore_diameter",
+    "agent": "orchestrator",
+    "action": "rag_fallback",
+    "input_summary": "direct extraction failed or invalid for 'bore_diameter'",
+    "output_summary": "querying vector store for similar products",
+    "result": "attempting",
+    "timestamp": "2026-08-11T18:09:56.157108+00:00"
+  },
+  {
+    "step": 5,
+    "field": "bore_diameter",
+    "agent": "document_agent+rag",
+    "action": "extract_attempt",
+    "input_summary": "RAG context: 1 similar products",
+    "output_summary": "value=None",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:09:58.588218+00:00"
+  },
+  {
+    "step": 6,
+    "field": "bore_diameter",
+    "agent": "orchestrator",
+    "action": "flag_for_review",
+    "input_summary": "all extraction strategies exhausted",
+    "output_summary": "field marked as not_found, needs human review",
+    "result": "flagged",
+    "timestamp": "2026-08-11T18:09:58.588271+00:00"
+  },
+  {
+    "step": 7,
+    "field": "outer_diameter",
+    "agent": "document_agent",
+    "action": "extract_attempt",
+    "input_summary": "PDF chunk from page 3 (3000 chars)",
+    "output_summary": "value=None, span=''",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:02.694459+00:00"
+  },
+  {
+    "step": 8,
+    "field": "outer_diameter",
+    "agent": "document_agent",
+    "action": "extract_attempt",
+    "input_summary": "PDF chunk from page 4 (2600 chars)",
+    "output_summary": "value=None, span=''",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:06.795883+00:00"
+  },
+  {
+    "step": 9,
+    "field": "outer_diameter",
+    "agent": "orchestrator",
+    "action": "rag_fallback",
+    "input_summary": "direct extraction failed or invalid for 'outer_diameter'",
+    "output_summary": "querying vector store for similar products",
+    "result": "attempting",
+    "timestamp": "2026-08-11T18:10:06.814425+00:00"
+  },
+  {
+    "step": 10,
+    "field": "outer_diameter",
+    "agent": "document_agent+rag",
+    "action": "extract_attempt",
+    "input_summary": "RAG context: 1 similar products",
+    "output_summary": "value=None",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:08.914202+00:00"
+  },
+  {
+    "step": 11,
+    "field": "outer_diameter",
+    "agent": "orchestrator",
+    "action": "flag_for_review",
+    "input_summary": "all extraction strategies exhausted",
+    "output_summary": "field marked as not_found, needs human review",
+    "result": "flagged",
+    "timestamp": "2026-08-11T18:10:08.914261+00:00"
+  },
+  {
+    "step": 12,
+    "field": "width",
+    "agent": "document_agent",
+    "action": "extract_attempt",
+    "input_summary": "PDF chunk from page 14 (2081 chars)",
+    "output_summary": "value=None, span=''",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:13.018736+00:00"
+  },
+  {
+    "step": 13,
+    "field": "width",
+    "agent": "document_agent",
+    "action": "extract_attempt",
+    "input_summary": "PDF chunk from page 23 (3000 chars)",
+    "output_summary": "value=None, span=''",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:17.101455+00:00"
+  },
+  {
+    "step": 14,
+    "field": "width",
+    "agent": "orchestrator",
+    "action": "rag_fallback",
+    "input_summary": "direct extraction failed or invalid for 'width'",
+    "output_summary": "querying vector store for similar products",
+    "result": "attempting",
+    "timestamp": "2026-08-11T18:10:17.107580+00:00"
+  },
+  {
+    "step": 15,
+    "field": "width",
+    "agent": "document_agent+rag",
+    "action": "extract_attempt",
+    "input_summary": "RAG context: 1 similar products",
+    "output_summary": "value=None",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:19.191028+00:00"
+  },
+  {
+    "step": 16,
+    "field": "width",
+    "agent": "orchestrator",
+    "action": "flag_for_review",
+    "input_summary": "all extraction strategies exhausted",
+    "output_summary": "field marked as not_found, needs human review",
+    "result": "flagged",
+    "timestamp": "2026-08-11T18:10:19.191075+00:00"
+  },
+  {
+    "step": 17,
+    "field": "load_rating_dynamic",
+    "agent": "document_agent",
+    "action": "extract_attempt",
+    "input_summary": "PDF chunk from page 4 (2600 chars)",
+    "output_summary": "value=None, span=''",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:23.279780+00:00"
+  },
+  {
+    "step": 18,
+    "field": "load_rating_dynamic",
+    "agent": "document_agent",
+    "action": "extract_attempt",
+    "input_summary": "PDF chunk from page 5 (3000 chars)",
+    "output_summary": "value=None, span=''",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:27.371914+00:00"
+  },
+  {
+    "step": 19,
+    "field": "load_rating_dynamic",
+    "agent": "orchestrator",
+    "action": "rag_fallback",
+    "input_summary": "direct extraction failed or invalid for 'load_rating_dynamic'",
+    "output_summary": "querying vector store for similar products",
+    "result": "attempting",
+    "timestamp": "2026-08-11T18:10:27.392243+00:00"
+  },
+  {
+    "step": 20,
+    "field": "load_rating_dynamic",
+    "agent": "document_agent+rag",
+    "action": "extract_attempt",
+    "input_summary": "RAG context: 1 similar products",
+    "output_summary": "value=None",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:29.529036+00:00"
+  },
+  {
+    "step": 21,
+    "field": "load_rating_dynamic",
+    "agent": "orchestrator",
+    "action": "flag_for_review",
+    "input_summary": "all extraction strategies exhausted",
+    "output_summary": "field marked as not_found, needs human review",
+    "result": "flagged",
+    "timestamp": "2026-08-11T18:10:29.529072+00:00"
+  },
+  {
+    "step": 22,
+    "field": "load_rating_static",
+    "agent": "document_agent",
+    "action": "extract_attempt",
+    "input_summary": "PDF chunk from page 12 (3000 chars)",
+    "output_summary": "value=None, span=''",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:33.614683+00:00"
+  },
+  {
+    "step": 23,
+    "field": "load_rating_static",
+    "agent": "document_agent",
+    "action": "extract_attempt",
+    "input_summary": "PDF chunk from page 13 (3000 chars)",
+    "output_summary": "value=None, span=''",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:37.702944+00:00"
+  },
+  {
+    "step": 24,
+    "field": "load_rating_static",
+    "agent": "orchestrator",
+    "action": "rag_fallback",
+    "input_summary": "direct extraction failed or invalid for 'load_rating_static'",
+    "output_summary": "querying vector store for similar products",
+    "result": "attempting",
+    "timestamp": "2026-08-11T18:10:37.718652+00:00"
+  },
+  {
+    "step": 25,
+    "field": "load_rating_static",
+    "agent": "document_agent+rag",
+    "action": "extract_attempt",
+    "input_summary": "RAG context: 1 similar products",
+    "output_summary": "value=None",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:39.825573+00:00"
+  },
+  {
+    "step": 26,
+    "field": "load_rating_static",
+    "agent": "orchestrator",
+    "action": "flag_for_review",
+    "input_summary": "all extraction strategies exhausted",
+    "output_summary": "field marked as not_found, needs human review",
+    "result": "flagged",
+    "timestamp": "2026-08-11T18:10:39.825620+00:00"
+  },
+  {
+    "step": 27,
+    "field": "material",
+    "agent": "document_agent",
+    "action": "extract_attempt",
+    "input_summary": "PDF chunk from page 3 (3000 chars)",
+    "output_summary": "value=None, span=''",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:43.938039+00:00"
+  },
+  {
+    "step": 28,
+    "field": "material",
+    "agent": "document_agent",
+    "action": "extract_attempt",
+    "input_summary": "PDF chunk from page 4 (2600 chars)",
+    "output_summary": "value=None, span=''",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:48.020399+00:00"
+  },
+  {
+    "step": 29,
+    "field": "material",
+    "agent": "orchestrator",
+    "action": "rag_fallback",
+    "input_summary": "direct extraction failed or invalid for 'material'",
+    "output_summary": "querying vector store for similar products",
+    "result": "attempting",
+    "timestamp": "2026-08-11T18:10:48.036772+00:00"
+  },
+  {
+    "step": 30,
+    "field": "material",
+    "agent": "document_agent+rag",
+    "action": "extract_attempt",
+    "input_summary": "RAG context: 1 similar products",
+    "output_summary": "value=None",
+    "result": "failed",
+    "timestamp": "2026-08-11T18:10:50.119857+00:00"
+  },
+  {
+    "step": 31,
+    "field": "material",
+    "agent": "orchestrator",
+    "action": "flag_for_review",
+    "input_summary": "all extraction strategies exhausted",
+    "output_summary": "field marked as not_found, needs human review",
+    "result": "flagged",
+    "timestamp": "2026-08-11T18:10:50.119894+00:00"
+  },
+  {
+    "step": 32,
+    "field": "__pipeline__",
+    "agent": "orchestrator",
+    "action": "complete",
+    "input_summary": "processed 6 fields",
+    "output_summary": "filled=0, flagged=6, completeness=0.0%",
+    "result": "success",
+    "timestamp": "2026-08-11T18:10:50.120038+00:00"
+  }
+]
