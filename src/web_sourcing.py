@@ -125,7 +125,7 @@ class WebEnricher:
         if not url:
             return None, None
         try:
-            resp = self._session.get(url, timeout=3)
+            resp = self._session.get(url, timeout=2)
             resp.raise_for_status()
             html = resp.text
             soup = self._bs4(html, "html.parser")

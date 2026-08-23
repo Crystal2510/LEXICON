@@ -1158,9 +1158,11 @@ class ProductPipeline:
         if classpath and classpath != 'General':
             depth = classpath.count('>') + 1
             score += min(30, 10 * depth)
+        else:
+            score += 5
 
         if brand_name:
-            brand_lower = brand_name.lower().strip()
+            brand_lower = brand_name.lower().strip().rstrip('\u00ae')
             known_brands = {'3m', 'dewalt', 'milwaukee', 'makita', 'bosch', 'ridgid', 'ryobi',
                 'stanley', 'craftsman', 'irwin', 'diablo', 'freud', 'mirka',
                 'leviton', 'lutron', 'philips', 'ge', 'whirlpool', 'frigidaire',
@@ -1176,31 +1178,38 @@ class ProductPipeline:
             if brand_lower in known_brands:
                 score += 20
             else:
-                score += 10
+                score += 15
 
         if mobile_desc:
             mob_len = len(str(mobile_desc))
             if 60 <= mob_len <= 80:
                 score += 15
             elif 40 <= mob_len < 60:
-                score += 8
+                score += 12
             elif mob_len > 80:
                 score += 10
+            else:
+                score += 5
 
         attr_count = sum(1 for k in output if k.startswith('ATTRIBUTE_LABEL') and output[k])
         if attr_count >= 5:
             score += 15
         elif attr_count >= 3:
-            score += 10
+            score += 12
         elif attr_count >= 1:
-            score += 5
+            score += 8
+        else:
+            score += 3
 
         if mfg_part_num and len(str(mfg_part_num).strip()) > 2:
             score += 5
 
+        if invoice_desc:
+            score += 5
+
         score = min(99, score)
         output["CONFIDENCE_SCORE"] = f"{score}%"
-        if score < 60:
+        if score < 50:
             if review_reason:
                 review_reason += " + Low Confidence"
             else:
@@ -1470,7 +1479,7 @@ class ProductPipeline:
                     and attr_count < 5
                     and mpn and len(str(mpn).strip()) > 2
                     and str(mpn).strip() != '-'
-                    and i < 20
+                    and i < 15
                 )
                 if needs_web:
                     candidates.append(i)
