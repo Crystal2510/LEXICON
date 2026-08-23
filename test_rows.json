@@ -1,0 +1,12 @@
+[
+  {
+    "PART_NUMBER": "TEST-001",
+    "BRAND_NAME": "TestBrand",
+    "MOBILE_DESC": "Test product"
+  },
+  {
+    "PART_NUMBER": "TEST-002",
+    "BRAND_NAME": "AnotherBrand",
+    "MOBILE_DESC": "Another product"
+  }
+]

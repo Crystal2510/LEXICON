@@ -1,4 +1,4 @@
-const API = '/api';
+const API = import.meta.env.VITE_API_URL || '/api';
 
 export async function previewCSV(file: File) {
   const form = new FormData();
