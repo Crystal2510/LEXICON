@@ -1,1 +1,2 @@
-# UniHack Product Intelligence System
+# Product Intelligence Pipeline
+# Unilog Hackathon 2026
