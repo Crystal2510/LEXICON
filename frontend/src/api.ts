@@ -43,20 +43,14 @@ export async function approveRow(rowIndex: number, edits: Record<string, string>
 }
 
 export async function downloadCSV(rows: any[]) {
-  const res = await fetch(`${API}/download/csv`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(rows),
-  });
+  const res = await fetch(`${API}/download/csv`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.blob();
 }
 
 export async function downloadXLSX(rows: any[]) {
-  const res = await fetch(`${API}/download/xlsx`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(rows),
-  });
+  const res = await fetch(`${API}/download/xlsx`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.blob();
 }
 

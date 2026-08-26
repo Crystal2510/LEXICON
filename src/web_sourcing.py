@@ -29,9 +29,12 @@ class WebEnricher:
         self._available = False
         self._cache = {}
         self._session = None
-        self._init_deps()
+        self._deps_initialized = False
 
-    def _init_deps(self):
+    def _ensure_init(self):
+        if self._deps_initialized:
+            return
+        self._deps_initialized = True
         _ensure_deps()
         self._requests = requests
         self._bs4 = BeautifulSoup
@@ -58,9 +61,11 @@ class WebEnricher:
 
     @property
     def is_available(self):
+        self._ensure_init()
         return self._available
 
     def search_and_scrape(self, brand, mpn):
+        self._ensure_init()
         if not self._available or not mpn or not mpn.strip():
             return None, {}
         cache_key = "%s|%s" % (brand, mpn)
@@ -109,7 +114,10 @@ class WebEnricher:
         all_urls = []
         seen = set()
         try:
-            results = list(self._ddgs.text(query, max_results=3))  # Reduced from 5 to 3
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            with ThreadPoolExecutor(max_workers=1) as ex:
+                future = ex.submit(lambda: list(self._ddgs.text(query, max_results=3)))
+                results = future.result(timeout=5)
             for r in results:
                 url = r.get("href", "") or r.get("link", "")
                 if url and url not in seen and self._is_useful_url(url):
@@ -117,7 +125,6 @@ class WebEnricher:
                     all_urls.append(url)
         except Exception as e:
             logger.debug("Search fail: %s", e)
-            time.sleep(0.1)  # Reduced from 0.3
         all_urls.sort(key=lambda u: self._rank_url(u))
         return all_urls
 
@@ -125,7 +132,7 @@ class WebEnricher:
         if not url:
             return None, None
         try:
-            resp = self._session.get(url, timeout=2)
+            resp = self._session.get(url, timeout=1.5)
             resp.raise_for_status()
             html = resp.text
             soup = self._bs4(html, "html.parser")

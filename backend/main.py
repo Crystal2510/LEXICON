@@ -533,25 +533,56 @@ async def download_review_items():
 
 
 @app.post("/api/download/csv")
-async def download_csv(rows: List[Dict[str, Any]]):
+async def download_csv(rows: Optional[List[Dict[str, Any]]] = None):
     try:
-        df = pd.DataFrame(rows)
+        if rows:
+            df = pd.DataFrame(rows)
+        elif enriched_data is not None:
+            df = enriched_data
+        else:
+            raise HTTPException(status_code=404, detail="No data to download")
         buffer = io.StringIO()
         df.to_csv(buffer, index=False)
         buffer.seek(0)
         return StreamingResponse(
             io.BytesIO(buffer.getvalue().encode("utf-8")),
             media_type="text/csv",
-            headers={"Content-Disposition": "attachment; filename=cortex_enriched_output.csv"},
+            headers={"Content-Disposition": "attachment; filename=lexicon_enriched_output.csv"},
         )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/download/csv")
+async def download_csv_get():
+    try:
+        if enriched_data is None:
+            raise HTTPException(status_code=404, detail="No data to download")
+        buffer = io.StringIO()
+        enriched_data.to_csv(buffer, index=False)
+        buffer.seek(0)
+        return StreamingResponse(
+            io.BytesIO(buffer.getvalue().encode("utf-8")),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=lexicon_enriched_output.csv"},
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/download/xlsx")
-async def download_xlsx(rows: List[Dict[str, Any]]):
+async def download_xlsx(rows: Optional[List[Dict[str, Any]]] = None):
     try:
-        df = pd.DataFrame(rows)
+        if rows:
+            df = pd.DataFrame(rows)
+        elif enriched_data is not None:
+            df = enriched_data
+        else:
+            raise HTTPException(status_code=404, detail="No data to download")
         buffer = io.BytesIO()
 
         with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
@@ -585,8 +616,41 @@ async def download_xlsx(rows: List[Dict[str, Any]]):
         return StreamingResponse(
             buffer,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": "attachment; filename=cortex_enriched_output.xlsx"},
+            headers={"Content-Disposition": "attachment; filename=lexicon_enriched_output.xlsx"},
         )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/download/xlsx")
+async def download_xlsx_get():
+    try:
+        if enriched_data is None:
+            raise HTTPException(status_code=404, detail="No data to download")
+        buffer = io.BytesIO()
+
+        with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+            enriched_data.to_excel(writer, index=False, sheet_name="Enriched Data")
+            ws = writer.sheets["Enriched Data"]
+
+            from openpyxl.styles import Font, PatternFill, Alignment
+            header_font = Font(bold=True, color="FFFFFF", size=10)
+            header_fill = PatternFill(start_color="1A73E8", end_color="1A73E8", fill_type="solid")
+            for cell in ws[1]:
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = Alignment(horizontal="center")
+
+        buffer.seek(0)
+        return StreamingResponse(
+            buffer,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=lexicon_enriched_output.xlsx"},
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import logging
 import os
+import time
 from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -1265,7 +1266,11 @@ class ProductPipeline:
                 progress_callback(total, total, f"Phase 2: Web sourcing {len(candidates)} rows...")
 
             batch_size = 10
+            web_start = time.time()
             for batch_start in range(0, len(candidates), batch_size):
+                if time.time() - web_start > 30:
+                    logger.info("Web sourcing stopped after 30s timeout")
+                    break
                 batch = candidates[batch_start:batch_start + batch_size]
                 with ThreadPoolExecutor(max_workers=batch_size) as executor:
                     futures = {}
@@ -1279,7 +1284,7 @@ class ProductPipeline:
                     for fut in as_completed(futures):
                         idx = futures[fut]
                         try:
-                            ref_url, web_specs = fut.result()
+                            ref_url, web_specs = fut.result(timeout=5)
                             if web_specs:
                                 for key, val in web_specs.items():
                                     if key.startswith('_'):
@@ -1488,7 +1493,11 @@ class ProductPipeline:
                 progress_callback(total, total, f"Phase 2: Web sourcing {len(candidates)} rows...")
 
             batch_size = 10
+            web_start = time.time()
             for batch_start in range(0, len(candidates), batch_size):
+                if time.time() - web_start > 30:
+                    logger.info("Web sourcing stopped after 30s timeout")
+                    break
                 batch = candidates[batch_start:batch_start + batch_size]
                 with ThreadPoolExecutor(max_workers=batch_size) as executor:
                     futures = {}
@@ -1502,7 +1511,7 @@ class ProductPipeline:
                     for fut in as_completed(futures):
                         idx = futures[fut]
                         try:
-                            ref_url, web_specs = fut.result()
+                            ref_url, web_specs = fut.result(timeout=5)
                             if web_specs:
                                 for key, val in web_specs.items():
                                     if key.startswith('_'):
