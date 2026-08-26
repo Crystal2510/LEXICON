@@ -19,12 +19,21 @@ interface PreviewData {
 }
 
 const PIPELINE_STEPS = [
-  { key: 'csv', label: 'CSV' },
-  { key: 'parse', label: 'Parse' },
-  { key: 'brand', label: 'Brand' },
-  { key: 'classify', label: 'Classify' },
-  { key: 'generate', label: 'Generate' },
-  { key: 'done', label: 'Done' },
+  { key: 'csv', label: 'CSV', detail: 'Reading file...' },
+  { key: 'parse', label: 'Parse', detail: 'Parsing columns...' },
+  { key: 'brand', label: 'Brand', detail: 'Matching 27,000+ manufacturers...' },
+  { key: 'classify', label: 'Classify', detail: 'Classifying products...' },
+  { key: 'generate', label: 'Generate', detail: 'Generating descriptions...' },
+  { key: 'done', label: 'Done', detail: 'Complete!' },
+];
+
+const MOCK_CATEGORIES = [
+  { name: 'Power Tools', count: 340, color: '#2563EB' },
+  { name: 'Electrical', count: 210, color: '#16A34A' },
+  { name: 'Hand Tools', count: 155, color: '#D97706' },
+  { name: 'Lighting', count: 120, color: '#7C3AED' },
+  { name: 'Building Materials', count: 95, color: '#DC2626' },
+  { name: 'Safety', count: 80, color: '#0891B2' },
 ];
 
 const MAX_PREVIEW_COLS = 12;
@@ -37,6 +46,8 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
   const [loading, setLoading] = useState(false);
   const [processStep, setProcessStep] = useState(0);
   const [deepSourcing, _setDeepSourcing] = useState(true);
+  const [elapsed, setElapsed] = useState(0);
+  const [catBars, setCatBars] = useState<{name: string; count: number; shown: number; color: string}[]>([]);
   const [refFiles, setRefFiles] = useState<File[]>([]);
   const [refUploadStatus, setRefUploadStatus] = useState<string>('');
   const [refDragging, setRefDragging] = useState(false);
@@ -51,6 +62,8 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
   useEffect(() => {
     if (appState !== 'processing') return;
     setProcessStep(0);
+    setElapsed(0);
+    setCatBars(MOCK_CATEGORIES.map(c => ({ ...c, shown: 0 })));
 
     const timers: ReturnType<typeof setTimeout>[] = [];
     const stepDuration = 2500;
@@ -59,8 +72,28 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
       timers.push(setTimeout(() => setProcessStep(i), i * stepDuration));
     });
 
+    const elapsedTimer = setInterval(() => {
+      setElapsed(prev => prev + 1);
+    }, 1000);
+
+    let catIdx = 0;
+    const catTimer = setInterval(() => {
+      if (catIdx >= MOCK_CATEGORIES.length) {
+        clearInterval(catTimer);
+        return;
+      }
+      setCatBars(prev => prev.map((c, i) => {
+        if (i > catIdx) return c;
+        if (i < catIdx) return { ...c, shown: MOCK_CATEGORIES[i].count };
+        return { ...c, shown: Math.min(c.shown + Math.ceil(MOCK_CATEGORIES[i].count / 8), MOCK_CATEGORIES[i].count) };
+      }));
+      catIdx++;
+    }, 800);
+
     return () => {
       timers.forEach(clearTimeout);
+      clearInterval(elapsedTimer);
+      clearInterval(catTimer);
     };
   }, [appState]);
 
@@ -185,6 +218,32 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
                       })}
                     </div>
                   </div>
+
+                  <div className="w-full flex items-center justify-center gap-2 text-sm text-muted">
+                    <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+                    <span>{PIPELINE_STEPS[processStep]?.detail}</span>
+                    <span className="font-mono text-xs text-brand ml-1">{Math.floor(elapsed / 60)}:{(elapsed % 60).toString().padStart(2, '0')}</span>
+                  </div>
+
+                  {processStep >= 3 && catBars.some(c => c.shown > 0) && (
+                    <div className="w-full border border-border rounded-xl bg-white p-4">
+                      <div className="text-[10px] font-bold text-muted uppercase tracking-wider mb-3">Category Distribution</div>
+                      <div className="space-y-2.5">
+                        {catBars.map((cat) => (
+                          <div key={cat.name} className="flex items-center gap-3">
+                            <span className="text-xs text-text w-32 shrink-0 truncate">{cat.name}</span>
+                            <div className="flex-1 h-5 bg-gray-100 rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all duration-700 ease-out"
+                                style={{ width: `${(cat.shown / 340) * 100}%`, backgroundColor: cat.color }}
+                              />
+                            </div>
+                            <span className="text-xs font-mono text-muted w-10 text-right">{cat.shown}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : loading ? (
                 <Loader2 className="w-10 h-10 text-brand animate-spin" />

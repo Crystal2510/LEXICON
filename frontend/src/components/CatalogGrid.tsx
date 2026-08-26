@@ -116,22 +116,30 @@ export default function CatalogGrid({ rows }: Props) {
         </div>
 
         <div className="h-5 w-px bg-border" />
-        <button
-          onClick={() => handleDownload('csv')}
-          disabled={isDownloading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {downloading === 'csv' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-          CSV
-        </button>
-        <button
-          onClick={() => handleDownload('xlsx')}
-          disabled={isDownloading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {downloading === 'xlsx' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
-          Export XLSX
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => handleDownload('csv')}
+            disabled={isDownloading}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-70 disabled:cursor-not-allowed relative overflow-hidden"
+          >
+            {downloading === 'csv' && <div className="absolute inset-0 bg-white/20 animate-pulse" />}
+            {downloading === 'csv' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+            {downloading === 'csv' ? 'Downloading...' : 'CSV'}
+          </button>
+          {downloading === 'csv' && <div className="absolute bottom-0 left-0 h-0.5 bg-white animate-[shimmer_1.5s_infinite] w-full rounded" />}
+        </div>
+        <div className="relative">
+          <button
+            onClick={() => handleDownload('xlsx')}
+            disabled={isDownloading}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-70 disabled:cursor-not-allowed relative overflow-hidden"
+          >
+            {downloading === 'xlsx' && <div className="absolute inset-0 bg-white/20 animate-pulse" />}
+            {downloading === 'xlsx' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+            {downloading === 'xlsx' ? 'Downloading...' : 'Export XLSX'}
+          </button>
+          {downloading === 'xlsx' && <div className="absolute bottom-0 left-0 h-0.5 bg-white animate-[shimmer_1.5s_infinite] w-full rounded" />}
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto">
