@@ -643,6 +643,8 @@ async def download_xlsx_get():
                 cell.fill = header_fill
                 cell.alignment = Alignment(horizontal="center")
 
+            ws.auto_filter.ref = ws.dimensions
+
         buffer.seek(0)
         return StreamingResponse(
             buffer,

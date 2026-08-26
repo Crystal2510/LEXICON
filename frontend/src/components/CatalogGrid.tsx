@@ -119,7 +119,7 @@ export default function CatalogGrid({ rows }: Props) {
         <button
           onClick={() => handleDownload('csv')}
           disabled={isDownloading}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-sm text-muted hover:text-text hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {downloading === 'csv' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
           CSV

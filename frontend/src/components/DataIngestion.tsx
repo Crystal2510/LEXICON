@@ -18,14 +18,6 @@ interface PreviewData {
   preview: Record<string, string>[];
 }
 
-interface LiveFeedItem {
-  id: string;
-  name: string;
-  category: string;
-  confidence: number;
-  timestamp: number;
-}
-
 const PIPELINE_STEPS = [
   { key: 'csv', label: 'CSV' },
   { key: 'parse', label: 'Parse' },
@@ -33,14 +25,6 @@ const PIPELINE_STEPS = [
   { key: 'classify', label: 'Classify' },
   { key: 'generate', label: 'Generate' },
   { key: 'done', label: 'Done' },
-];
-
-const MOCK_FEED: Omit<LiveFeedItem, 'timestamp'>[] = [
-  { id: 'DCF887B', name: 'DeWalt Impact Driver', category: 'Power Tools>Drivers', confidence: 93 },
-  { id: 'MIL2241', name: 'Milwaukee M18 Drill', category: 'Power Tools>Drills', confidence: 91 },
-  { id: 'BOS192K', name: 'Bosch Circular Saw 7-1/4', category: 'Power Tools>Saws', confidence: 88 },
-  { id: 'MAKTD001', name: 'Makita 18V LXT Recip Saw', category: 'Power Tools>Saws', confidence: 95 },
-  { id: 'HRG5620', name: 'Hilti TE 6 Rotary Hammer', category: 'Power Tools>Demolition', confidence: 87 },
 ];
 
 const MAX_PREVIEW_COLS = 12;
@@ -53,17 +37,11 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
   const [loading, setLoading] = useState(false);
   const [processStep, setProcessStep] = useState(0);
   const [deepSourcing, _setDeepSourcing] = useState(true);
-  const [liveFeed, setLiveFeed] = useState<LiveFeedItem[]>([]);
-  const [_rowsProcessed, setRowsProcessed] = useState(0);
   const [refFiles, setRefFiles] = useState<File[]>([]);
   const [refUploadStatus, setRefUploadStatus] = useState<string>('');
   const [refDragging, setRefDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
-  const feedRef = useRef<LiveFeedItem[]>([]);
-  const rowsRef = useRef(0);
-
-  const totalRows = preview?.total_rows ?? 0;
 
   const previewCols = useMemo(() => {
     if (!preview) return [];
@@ -73,10 +51,6 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
   useEffect(() => {
     if (appState !== 'processing') return;
     setProcessStep(0);
-    setRowsProcessed(0);
-    setLiveFeed([]);
-    feedRef.current = [];
-    rowsRef.current = 0;
 
     const timers: ReturnType<typeof setTimeout>[] = [];
     const stepDuration = 2500;
@@ -85,29 +59,10 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
       timers.push(setTimeout(() => setProcessStep(i), i * stepDuration));
     });
 
-    let rowIdx = 0;
-    const feedTimer = setInterval(() => {
-      if (rowIdx >= Math.min(5, totalRows || 5)) {
-        clearInterval(feedTimer);
-        return;
-      }
-      const mock = MOCK_FEED[rowIdx % MOCK_FEED.length];
-      const item = { ...mock, timestamp: Date.now() };
-      feedRef.current = [...feedRef.current, item].slice(-5);
-      rowsRef.current = rowIdx + 1;
-
-      if (rowIdx % 2 === 0) {
-        setLiveFeed([...feedRef.current]);
-        setRowsProcessed(rowsRef.current);
-      }
-      rowIdx++;
-    }, 2000);
-
     return () => {
       timers.forEach(clearTimeout);
-      clearInterval(feedTimer);
     };
-  }, [appState, totalRows]);
+  }, [appState]);
 
   const handleFile = useCallback(async (f: File) => {
     if (!f.name.endsWith('.csv')) {
@@ -230,30 +185,6 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
                       })}
                     </div>
                   </div>
-
-                  {liveFeed.length > 0 && (
-                    <div className="w-full border border-border rounded-xl overflow-hidden bg-white">
-                      <div className="px-3 py-2 bg-gray-50 border-b border-border flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green animate-pulse" />
-                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Live Feed</span>
-                      </div>
-                      <div className="max-h-48 overflow-y-auto p-2 space-y-1">
-                        {liveFeed.map((item) => (
-                          <div
-                            key={`${item.id}-${item.timestamp}`}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-light/30 text-sm"
-                          >
-                            <CheckCircle className="w-3.5 h-3.5 text-green shrink-0" />
-                            <span className="font-mono text-xs font-bold text-green">{item.id}</span>
-                            <span className="text-text font-medium">{item.name}</span>
-                            <span className="text-muted">&rarr;</span>
-                            <span className="text-muted text-xs">{item.category}</span>
-                            <span className="ml-auto text-xs font-mono text-brand font-bold">{item.confidence}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               ) : loading ? (
                 <Loader2 className="w-10 h-10 text-brand animate-spin" />
