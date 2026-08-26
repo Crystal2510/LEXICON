@@ -1,22 +1,40 @@
 """
-LEXICON API — Enterprise Product Intelligence Backend
+LEXICON API - Enterprise Product Intelligence Backend
 ======================================================
 FastAPI server with HITL review queue, stats, and approval endpoints.
 """
 import io
 import os
 import sys
+import gc
 import logging
 from typing import List, Dict, Any, Optional
 
-import pandas as pd
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+pd = None
+ProductPipeline = None
+
+def _lazy_imports():
+    global pd, ProductPipeline
+    if pd is None:
+        import pandas as _pd
+        pd = _pd
+    if ProductPipeline is None:
+        from src.pipeline import ProductPipeline as _PP
+        ProductPipeline = _PP
+
+def _ensure_pd():
+    if pd is None:
+        _lazy_imports()
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.pipeline import ProductPipeline
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,23 +49,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-pipeline: Optional[ProductPipeline] = None
-enriched_data: Optional[pd.DataFrame] = None
+pipeline = None
+enriched_data = None
 
 
-def get_pipeline() -> ProductPipeline:
+def get_pipeline():
     global pipeline
     if pipeline is None:
+        _lazy_imports()
         pipeline = ProductPipeline()
     return pipeline
 
 
-def get_enriched_data() -> Optional[pd.DataFrame]:
+def get_enriched_data():
     global enriched_data
     return enriched_data
 
 
-def set_enriched_data(df: pd.DataFrame):
+def set_enriched_data(df):
     global enriched_data
     enriched_data = df
 
@@ -82,7 +101,8 @@ COLUMN_ALIASES = {
 }
 
 
-def map_columns(df: pd.DataFrame) -> pd.DataFrame:
+def map_columns(df):
+    _ensure_pd()
     mapped = {}
     df_cols_lower = {c.lower().strip(): c for c in df.columns}
     for target, aliases in COLUMN_ALIASES.items():
@@ -159,6 +179,7 @@ async def get_product_image(brand: str, mpn: str):
 @app.post("/api/preview")
 async def preview_csv(file: UploadFile = File(...)):
     try:
+        _ensure_pd()
         contents = await file.read()
         df = pd.read_csv(io.BytesIO(contents), dtype=str).fillna("")
         preview_rows = df.head(50).to_dict(orient="records")
@@ -199,6 +220,7 @@ async def upload_reference_files(files: List[UploadFile] = File(...)):
 async def enrich_csv(file: UploadFile = File(...), deep_sourcing: bool = True):
     global enriched_data
     try:
+        _ensure_pd()
         contents = await file.read()
         df = pd.read_csv(io.BytesIO(contents), dtype=str).fillna("")
         logger.info(f"Received {len(df)} rows, {len(df.columns)} columns: {list(df.columns)}")
@@ -208,14 +230,18 @@ async def enrich_csv(file: UploadFile = File(...), deep_sourcing: bool = True):
 
         pipe = get_pipeline()
         input_data = df.to_dict("records")
+
         pipe.initialize(input_data=input_data)
         enriched_df = pipe.process_dataframe(df, deep_sourcing=deep_sourcing)
+        del df, input_data
+        gc.collect()
 
         enriched_data = enriched_df
         logger.info(f"Enriched data stored: {len(enriched_df)} rows")
 
         stats = compute_stats(enriched_df)
         rows = enriched_df.to_dict(orient="records")
+        gc.collect()
         return {"rows": rows, "stats": stats, "columns": list(enriched_df.columns)}
 
     except Exception as e:
@@ -685,7 +711,7 @@ async def download_unilog():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def compute_stats(df: pd.DataFrame) -> dict:
+def compute_stats(df) -> dict:
     total = len(df)
     if total == 0:
         return {"total": 0}
