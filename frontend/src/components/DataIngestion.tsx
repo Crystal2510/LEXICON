@@ -1,4 +1,4 @@
-﻿import { useCallback, useRef, useState, useEffect } from 'react';
+﻿import { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, FileSpreadsheet, CheckCircle, Zap, AlertCircle, Eye, Loader2, Database } from 'lucide-react';
 import { previewCSV, enrichCSV, uploadReferenceFiles } from '../api';
@@ -43,6 +43,8 @@ const MOCK_FEED: Omit<LiveFeedItem, 'timestamp'>[] = [
   { id: 'HRG5620', name: 'Hilti TE 6 Rotary Hammer', category: 'Power Tools>Demolition', confidence: 87 },
 ];
 
+const MAX_PREVIEW_COLS = 12;
+
 export default function DataIngestion({ onUploadComplete, onError, error, appState, setAppState }: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -58,14 +60,23 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
   const [refDragging, setRefDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
+  const feedRef = useRef<LiveFeedItem[]>([]);
+  const rowsRef = useRef(0);
 
   const totalRows = preview?.total_rows ?? 0;
+
+  const previewCols = useMemo(() => {
+    if (!preview) return [];
+    return preview.columns.slice(0, MAX_PREVIEW_COLS);
+  }, [preview]);
 
   useEffect(() => {
     if (appState !== 'processing') return;
     setProcessStep(0);
     setRowsProcessed(0);
     setLiveFeed([]);
+    feedRef.current = [];
+    rowsRef.current = 0;
 
     const timers: ReturnType<typeof setTimeout>[] = [];
     const stepDuration = 2500;
@@ -81,10 +92,16 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
         return;
       }
       const mock = MOCK_FEED[rowIdx % MOCK_FEED.length];
-      setLiveFeed(prev => [...prev, { ...mock, timestamp: Date.now() }].slice(-5));
-      setRowsProcessed(rowIdx + 1);
+      const item = { ...mock, timestamp: Date.now() };
+      feedRef.current = [...feedRef.current, item].slice(-5);
+      rowsRef.current = rowIdx + 1;
+
+      if (rowIdx % 2 === 0) {
+        setLiveFeed([...feedRef.current]);
+        setRowsProcessed(rowsRef.current);
+      }
       rowIdx++;
-    }, 1800);
+    }, 2000);
 
     return () => {
       timers.forEach(clearTimeout);
@@ -221,25 +238,19 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
                         <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Live Feed</span>
                       </div>
                       <div className="max-h-48 overflow-y-auto p-2 space-y-1">
-                        <AnimatePresence mode="popLayout">
-                          {liveFeed.map((item) => (
-                            <motion.div
-                              key={`${item.id}-${item.timestamp}`}
-                              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-light/30 text-sm"
-                            >
-                              <CheckCircle className="w-3.5 h-3.5 text-green shrink-0" />
-                              <span className="font-mono text-xs font-bold text-green">{item.id}</span>
-                              <span className="text-text font-medium">{item.name}</span>
-                              <span className="text-muted">&rarr;</span>
-                              <span className="text-muted text-xs">{item.category}</span>
-                              <span className="ml-auto text-xs font-mono text-brand font-bold">{item.confidence}%</span>
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
+                        {liveFeed.map((item) => (
+                          <div
+                            key={`${item.id}-${item.timestamp}`}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-light/30 text-sm"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5 text-green shrink-0" />
+                            <span className="font-mono text-xs font-bold text-green">{item.id}</span>
+                            <span className="text-text font-medium">{item.name}</span>
+                            <span className="text-muted">&rarr;</span>
+                            <span className="text-muted text-xs">{item.category}</span>
+                            <span className="ml-auto text-xs font-mono text-brand font-bold">{item.confidence}%</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -313,7 +324,7 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
 
             {preview && (
               <div className="flex flex-wrap gap-1.5 px-1">
-                {preview.columns.map((col) => (
+                {previewCols.map((col) => (
                   <span
                     key={col}
                     className="px-2.5 py-1 bg-brand-light text-brand text-xs font-medium rounded-full border border-brand/20"
@@ -321,6 +332,11 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
                     {col}
                   </span>
                 ))}
+                {preview.columns.length > MAX_PREVIEW_COLS && (
+                  <span className="px-2.5 py-1 bg-gray-100 text-muted text-xs font-medium rounded-full">
+                    +{preview.columns.length - MAX_PREVIEW_COLS} more
+                  </span>
+                )}
               </div>
             )}
 
@@ -352,7 +368,7 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
                         <thead className="sticky top-0 bg-white border-b border-border">
                           <tr>
                             <th className="px-3 py-2.5 text-left text-[10px] font-bold text-muted uppercase w-10">#</th>
-                            {preview?.columns.map((col) => (
+                            {previewCols.map((col) => (
                               <th key={col} className="px-3 py-2.5 text-left text-[10px] font-bold text-muted uppercase whitespace-nowrap">
                                 {col}
                               </th>
@@ -363,7 +379,7 @@ export default function DataIngestion({ onUploadComplete, onError, error, appSta
                           {preview?.preview.map((row, idx) => (
                             <tr key={idx} className="border-b border-border/30 hover:bg-gray-50/50 transition-colors">
                               <td className="px-3 py-2 text-muted font-medium">{idx + 1}</td>
-                              {preview.columns.map((col) => (
+                              {previewCols.map((col) => (
                                 <td key={col} className="px-3 py-2 text-text max-w-[200px] truncate">
                                   {row[col] || <span className="text-gray-300">-</span>}
                                 </td>

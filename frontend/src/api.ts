@@ -42,13 +42,13 @@ export async function approveRow(rowIndex: number, edits: Record<string, string>
   return res.json();
 }
 
-export async function downloadCSV(rows: any[]) {
+export async function downloadCSV(_rows: any[]) {
   const res = await fetch(`${API}/download/csv`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.blob();
 }
 
-export async function downloadXLSX(rows: any[]) {
+export async function downloadXLSX(_rows: any[]) {
   const res = await fetch(`${API}/download/xlsx`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.blob();

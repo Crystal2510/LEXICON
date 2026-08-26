@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, FileText, FileSpreadsheet, LayoutGrid, List, Tag, Layers } from 'lucide-react';
+import { Search, X, FileText, FileSpreadsheet, LayoutGrid, List, Tag, Layers, Loader2 } from 'lucide-react';
 import { downloadCSV, downloadXLSX } from '../api';
 
 interface Props {
@@ -10,23 +10,31 @@ interface Props {
 
 const PAGE_SIZE = 50;
 const CARD_PAGE_SIZE = 24;
-const KEY_COLS = ['Mfg_Part_Num', 'BRAND_NAME', 'MANUFACTURER_NAME', 'Classpath', 'INVOICE_DESC', 'MOBILE_DESC', 'CONFIDENCE_SCORE'];
+const SEARCH_COLS = ['Mfg_Part_Num', 'Part_Desc', 'BRAND_NAME', 'MANUFACTURER_NAME', 'Classpath'];
 
 export default function CatalogGrid({ rows }: Props) {
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(0);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+  const [downloading, setDownloading] = useState<'csv' | 'xlsx' | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return rows;
-    const q = search.toLowerCase();
+    if (!debouncedSearch.trim()) return rows;
+    const q = debouncedSearch.toLowerCase();
     return rows.filter((r: any) =>
-      Object.values(r).some(v =>
-        v != null && String(v).toLowerCase().includes(q)
-      )
+      SEARCH_COLS.some(col => {
+        const v = r[col];
+        return v != null && String(v).toLowerCase().includes(q);
+      })
     );
-  }, [rows, search]);
+  }, [rows, debouncedSearch]);
 
   const pageSize = viewMode === 'card' ? CARD_PAGE_SIZE : PAGE_SIZE;
   const paged = useMemo(() => filtered.slice(page * pageSize, (page + 1) * pageSize), [filtered, page, pageSize]);
@@ -39,13 +47,21 @@ export default function CatalogGrid({ rows }: Props) {
   };
 
   const handleDownload = async (type: 'csv' | 'xlsx') => {
-    const blob = type === 'csv' ? await downloadCSV(rows) : await downloadXLSX(rows);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `lexicon_enriched_output.${type}`;
-    a.click();
-    URL.revokeObjectURL(url);
+    if (downloading) return;
+    setDownloading(type);
+    try {
+      const blob = type === 'csv' ? await downloadCSV(rows) : await downloadXLSX(rows);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `lexicon_enriched_output.${type}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+    } finally {
+      setDownloading(null);
+    }
   };
 
   const getConfBadge = (conf: string) => {
@@ -55,9 +71,10 @@ export default function CatalogGrid({ rows }: Props) {
     return 'bg-red-light text-red border border-red/20';
   };
 
+  const isDownloading = downloading !== null;
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex flex-col">
-      {/* Toolbar */}
       <div className="p-4 border-b border-border bg-white flex items-center gap-3 shrink-0">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
@@ -77,7 +94,6 @@ export default function CatalogGrid({ rows }: Props) {
         <span className="text-xs text-muted shrink-0">{filtered.length.toLocaleString()} rows</span>
         <div className="h-5 w-px bg-border" />
 
-        {/* View Mode Toggle */}
         <div className="flex items-center rounded-lg border border-border overflow-hidden">
           <button
             onClick={() => { setViewMode('table'); setPage(0); }}
@@ -100,17 +116,24 @@ export default function CatalogGrid({ rows }: Props) {
         </div>
 
         <div className="h-5 w-px bg-border" />
-        <button onClick={() => handleDownload('csv')} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-sm text-muted hover:text-text hover:bg-gray-50 transition-colors">
-          <FileText className="w-4 h-4" />
+        <button
+          onClick={() => handleDownload('csv')}
+          disabled={isDownloading}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-sm text-muted hover:text-text hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {downloading === 'csv' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
           CSV
         </button>
-        <button onClick={() => handleDownload('xlsx')} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors">
-          <FileSpreadsheet className="w-4 h-4" />
+        <button
+          onClick={() => handleDownload('xlsx')}
+          disabled={isDownloading}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {downloading === 'xlsx' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
           Export XLSX
         </button>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-auto">
         <AnimatePresence mode="wait">
           {viewMode === 'table' ? (
@@ -119,7 +142,7 @@ export default function CatalogGrid({ rows }: Props) {
                 <thead className="sticky top-0 z-10 bg-white border-b border-border">
                   <tr>
                     <th className="px-4 py-3 text-left text-[10px] font-bold text-muted uppercase tracking-wider w-12">#</th>
-                    {KEY_COLS.map((col) => (
+                    {SEARCH_COLS.map((col) => (
                       <th key={col} className="px-4 py-3 text-left text-[10px] font-bold text-muted uppercase tracking-wider whitespace-nowrap">
                         {col.replace(/_/g, ' ')}
                       </th>
@@ -160,15 +183,11 @@ export default function CatalogGrid({ rows }: Props) {
                 {paged.map((row: any, idx: number) => {
                   const gIdx = page * pageSize + idx;
                   return (
-                    <motion.div
+                    <div
                       key={gIdx}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.02 }}
                       className="rounded-xl border border-border bg-white p-4 cursor-pointer transition-all hover:shadow-md hover:border-brand/30"
                       onClick={() => setExpandedRow(expandedRow === gIdx ? null : gIdx)}
                     >
-                      {/* Header */}
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1 min-w-0">
                           <div className="font-mono text-xs text-brand font-medium truncate">{row.Mfg_Part_Num || 'No MPN'}</div>
@@ -179,7 +198,6 @@ export default function CatalogGrid({ rows }: Props) {
                         </span>
                       </div>
 
-                      {/* Classpath */}
                       {row.Classpath && (
                         <div className="flex items-center gap-1.5 mb-2">
                           <Layers className="w-3 h-3 text-green shrink-0" />
@@ -187,14 +205,12 @@ export default function CatalogGrid({ rows }: Props) {
                         </div>
                       )}
 
-                      {/* Invoice desc */}
                       {row.INVOICE_DESC && (
                         <div className="font-mono text-[10px] text-muted bg-gray-50 rounded px-2 py-1 truncate mb-2">
                           {row.INVOICE_DESC}
                         </div>
                       )}
 
-                      {/* Attributes preview */}
                       <div className="flex flex-wrap gap-1">
                         {row.MANUFACTURER_NAME && row.MANUFACTURER_NAME !== '-' && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-[9px] text-muted">
@@ -204,38 +220,27 @@ export default function CatalogGrid({ rows }: Props) {
                         )}
                       </div>
 
-                      {/* Expanded details */}
-                      <AnimatePresence>
-                        {expandedRow === gIdx && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="mt-3 pt-3 border-t border-border/50 space-y-1.5 text-[11px]">
-                              {row.Part_Desc && (
-                                <div><span className="font-bold text-muted">Input:</span> <span className="text-text">{row.Part_Desc}</span></div>
-                              )}
-                              {row.MOBILE_DESC && (
-                                <div><span className="font-bold text-muted">Mobile:</span> <span className="text-text">{row.MOBILE_DESC}</span></div>
-                              )}
-                              {[1, 2, 3, 4, 5].map(i => {
-                                const label = row[`ATTRIBUTE_LABEL ${i}`];
-                                const value = row[`ATTRIBUTE_VALUE ${i}`];
-                                if (!label || !value) return null;
-                                return (
-                                  <div key={i}>
-                                    <span className="font-bold text-muted">{label}:</span> <span className="text-text">{value}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
+                      {expandedRow === gIdx && (
+                        <div className="mt-3 pt-3 border-t border-border/50 space-y-1.5 text-[11px]">
+                          {row.Part_Desc && (
+                            <div><span className="font-bold text-muted">Input:</span> <span className="text-text">{row.Part_Desc}</span></div>
+                          )}
+                          {row.MOBILE_DESC && (
+                            <div><span className="font-bold text-muted">Mobile:</span> <span className="text-text">{row.MOBILE_DESC}</span></div>
+                          )}
+                          {[1, 2, 3, 4, 5].map(i => {
+                            const label = row[`ATTRIBUTE_LABEL ${i}`];
+                            const value = row[`ATTRIBUTE_VALUE ${i}`];
+                            if (!label || !value) return null;
+                            return (
+                              <div key={i}>
+                                <span className="font-bold text-muted">{label}:</span> <span className="text-text">{value}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -244,7 +249,6 @@ export default function CatalogGrid({ rows }: Props) {
         </AnimatePresence>
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="p-3 border-t border-border bg-white flex items-center justify-between text-xs text-muted shrink-0">
           <span>Page {page + 1} of {totalPages}</span>
