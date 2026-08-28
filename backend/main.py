@@ -35,11 +35,17 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
+from contextlib import asynccontextmanager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="CORTEX API", version="2.0.0")
+@asynccontextmanager
+async def lifespan(app):
+    _load_from_disk()
+    yield
+
+app = FastAPI(title="CORTEX API", version="2.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -51,6 +57,30 @@ app.add_middleware(
 
 pipeline = None
 enriched_data = None
+_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+_CACHE_FILE = os.path.join(_DATA_DIR, "_enriched_cache.pkl")
+
+
+def _save_to_disk():
+    global enriched_data
+    if enriched_data is not None:
+        try:
+            _ensure_pd()
+            enriched_data.to_pickle(_CACHE_FILE)
+            logger.info(f"Saved enriched data to disk: {len(enriched_data)} rows")
+        except Exception as e:
+            logger.warning(f"Failed to save to disk: {e}")
+
+
+def _load_from_disk():
+    global enriched_data
+    if enriched_data is None and os.path.exists(_CACHE_FILE):
+        try:
+            _ensure_pd()
+            enriched_data = pd.read_pickle(_CACHE_FILE)
+            logger.info(f"Loaded enriched data from disk: {len(enriched_data)} rows")
+        except Exception as e:
+            logger.warning(f"Failed to load from disk: {e}")
 
 
 def get_pipeline():
@@ -63,6 +93,7 @@ def get_pipeline():
 
 def get_enriched_data():
     global enriched_data
+    _load_from_disk()
     return enriched_data
 
 
@@ -237,6 +268,7 @@ async def enrich_csv(file: UploadFile = File(...), deep_sourcing: bool = True):
         gc.collect()
 
         enriched_data = enriched_df
+        _save_to_disk()
         logger.info(f"Enriched data stored: {len(enriched_df)} rows")
 
         stats = compute_stats(enriched_df)
@@ -266,17 +298,17 @@ async def get_review_queue():
 
 @app.get("/api/all-rows")
 async def get_all_rows():
-    global enriched_data
-    if enriched_data is None or len(enriched_data) == 0:
+    data = get_enriched_data()
+    if data is None or len(data) == 0:
         raise HTTPException(status_code=404, detail="No data processed yet")
-    logger.info(f"Returning all rows: {len(enriched_data)} rows")
+    logger.info(f"Returning all rows: {len(data)} rows")
     key_cols = [
         "Mfg_Part_Num", "Part_Desc", "BRAND_NAME", "MANUFACTURER_NAME",
         "Classpath", "MOBILE_DESC", "INVOICE_DESC", "SHORT_DESC",
         "UNSPSC", "CONFIDENCE_SCORE", "NEEDS_REVIEW",
     ]
-    existing = [c for c in key_cols if c in enriched_data.columns]
-    df = enriched_data[existing].copy()
+    existing = [c for c in key_cols if c in data.columns]
+    df = data[existing].copy()
     df["_row_index"] = df.index
     conf_vals = df["CONFIDENCE_SCORE"].str.replace("%", "").astype(float)
     df["_conf_sort"] = conf_vals
@@ -339,6 +371,7 @@ async def approve_row(req: ApproveRequest):
     conf_score = min(99, conf_score)
     enriched_data.at[idx, "CONFIDENCE_SCORE"] = f"{conf_score}%"
     enriched_data.at[idx, "NEEDS_REVIEW"] = "Yes" if conf_score < 50 else "No"
+    _save_to_disk()
 
     return {"status": "ok", "new_confidence": enriched_data.at[idx, "CONFIDENCE_SCORE"]}
 
